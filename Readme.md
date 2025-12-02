@@ -6,11 +6,6 @@ Estimation de prix immobiliers (squelette initial)
 Développemment d'un outil d'estimation du prix des biens immobiliers via des techniques de Machine Learning. 
 
 ## Objectifs du rendu
-- Fournir 1-2 notebooks Python documentés (exploration + modélisation).
-- Dashboard Power BI exporté.
-- README complet expliquant la démarche.
-- Script Flask déployant le modèle.
-- `Dockerfile` pour conteneuriser l'app.
 
 ## Structure du dépôt
 ```
