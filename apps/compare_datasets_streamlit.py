@@ -590,7 +590,24 @@ def main() -> None:
 
         # Afficher le pourcentage de complétude (non manquants) pour chaque colonne
         try:
-            col_display = {col: f"{col} — compl.: {df_clean[col].notna().mean()*100:.1f}%" for col in df_clean.columns}
+            def _dtype_short(col_name: str) -> str:
+                ser = df_clean[col_name]
+                try:
+                    if pd.api.types.is_integer_dtype(ser):
+                        return 'int'
+                    if pd.api.types.is_float_dtype(ser):
+                        return 'float'
+                    if pd.api.types.is_datetime64_any_dtype(ser):
+                        return 'datetime'
+                    if pd.api.types.is_bool_dtype(ser) or str(ser.dtype).startswith('boolean'):
+                        return 'bool'
+                    if pd.api.types.is_categorical_dtype(ser):
+                        return 'category'
+                except Exception:
+                    pass
+                return 'string'
+
+            col_display = {col: f"{col}\n({_dtype_short(col)}) — compl.: {df_clean[col].notna().mean()*100:.1f}%" for col in df_clean.columns}
             preview_df = _make_preview(df_clean, preview_choice).rename(columns=col_display)
             st.dataframe(preview_df, use_container_width=True)
         except Exception:
@@ -695,7 +712,24 @@ def main() -> None:
                 preview = _make_preview(df_clean, preview_choice).copy()
                 preview[impute_col] = preview[impute_col].fillna(val)
                 try:
-                    col_display = {impute_col: f"{impute_col} — compl.: {df_clean[impute_col].notna().mean()*100:.1f}%"}
+                    def _dtype_short_local(col_name: str) -> str:
+                        ser = df_clean[col_name]
+                        try:
+                            if pd.api.types.is_integer_dtype(ser):
+                                return 'int'
+                            if pd.api.types.is_float_dtype(ser):
+                                return 'float'
+                            if pd.api.types.is_datetime64_any_dtype(ser):
+                                return 'datetime'
+                            if pd.api.types.is_bool_dtype(ser) or str(ser.dtype).startswith('boolean'):
+                                return 'bool'
+                            if pd.api.types.is_categorical_dtype(ser):
+                                return 'category'
+                        except Exception:
+                            pass
+                        return 'string'
+
+                    col_display = {impute_col: f"{impute_col}\n({_dtype_short_local(impute_col)}) — compl.: {df_clean[impute_col].notna().mean()*100:.1f}%"}
                     st.dataframe(preview[[impute_col]].rename(columns=col_display), use_container_width=True)
                 except Exception:
                     st.dataframe(preview[[impute_col]], use_container_width=True)
@@ -751,7 +785,24 @@ def main() -> None:
                     except Exception:
                         continue
                 try:
-                    col_display = {col: f"{col} — compl.: {df_clean[col].notna().mean()*100:.1f}%" for col in preview.columns}
+                    def _dtype_short_preview(col_name: str) -> str:
+                        ser = df_clean[col_name] if col_name in df_clean.columns else preview[col_name]
+                        try:
+                            if pd.api.types.is_integer_dtype(ser):
+                                return 'int'
+                            if pd.api.types.is_float_dtype(ser):
+                                return 'float'
+                            if pd.api.types.is_datetime64_any_dtype(ser):
+                                return 'datetime'
+                            if pd.api.types.is_bool_dtype(ser) or str(ser.dtype).startswith('boolean'):
+                                return 'bool'
+                            if pd.api.types.is_categorical_dtype(ser):
+                                return 'category'
+                        except Exception:
+                            pass
+                        return 'string'
+
+                    col_display = {col: f"{col}\n({_dtype_short_preview(col)}) — compl.: {df_clean[col].notna().mean()*100:.1f}%" for col in preview.columns}
                     st.dataframe(preview.rename(columns=col_display), use_container_width=True)
                 except Exception:
                     st.dataframe(preview, use_container_width=True)
@@ -832,7 +883,24 @@ def main() -> None:
                     except Exception:
                         continue
                 try:
-                    col_display = {col: f"{col} — compl.: {df_clean[col].notna().mean()*100:.1f}%" for col in preview.columns}
+                    def _dtype_short_preview2(col_name: str) -> str:
+                        ser = df_clean[col_name] if col_name in df_clean.columns else preview[col_name]
+                        try:
+                            if pd.api.types.is_integer_dtype(ser):
+                                return 'int'
+                            if pd.api.types.is_float_dtype(ser):
+                                return 'float'
+                            if pd.api.types.is_datetime64_any_dtype(ser):
+                                return 'datetime'
+                            if pd.api.types.is_bool_dtype(ser) or str(ser.dtype).startswith('boolean'):
+                                return 'bool'
+                            if pd.api.types.is_categorical_dtype(ser):
+                                return 'category'
+                        except Exception:
+                            pass
+                        return 'string'
+
+                    col_display = {col: f"{col}\n({_dtype_short_preview2(col)}) — compl.: {df_clean[col].notna().mean()*100:.1f}%" for col in preview.columns}
                     st.dataframe(preview.rename(columns=col_display), use_container_width=True)
                 except Exception:
                     st.dataframe(preview, use_container_width=True)
