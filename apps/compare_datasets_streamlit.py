@@ -19,6 +19,7 @@ import plotly.express as px
 import streamlit.components.v1 as components
 from pathlib import Path
 from sklearn.feature_selection import mutual_info_regression
+from sklearn.decomposition import PCA
 from textwrap import dedent
 import json
 from datetime import datetime
@@ -189,21 +190,27 @@ def main() -> None:
     a_path = DATA_DIR / 'houses_Madrid.csv'
     b_path = DATA_DIR / 'kc_house_data.csv'
 
-    if not a_path.exists() or not b_path.exists():
-        st.error(f"Attendu: {a_path} et {b_path} dans `data/`. Vérifiez que les fichiers existent.")
-        return
-
-    df_a = load_csv(a_path)
-    df_b = load_csv(b_path)
+    # default load original datasets
+    df_a = load_csv(a_path) if a_path.exists() else pd.DataFrame()
+    df_b = load_csv(b_path) if b_path.exists() else pd.DataFrame()
 
     info_a = summarize(df_a)
     info_b = summarize(df_b)
 
     # KPI cards
-    def render_kpis(title: str, info: dict, path: Path):
+    def render_kpis(title: str, info: dict, df: pd.DataFrame | None = None, path: Path | None = None):
         missing_pct = info['missing_perc']
         outlier_pct = info.get('outlier_perc', 0.0)
-        tgt = detect_target(load_csv(path))
+        # prefer explicit df for target detection when available
+        try:
+            if df is not None:
+                tgt = detect_target(df)
+            elif path is not None:
+                tgt = detect_target(load_csv(path))
+            else:
+                tgt = None
+        except Exception:
+            tgt = None
         c1, c2, c3 = st.columns([1, 1, 1])
         c1.metric(label=f"{title} — Lignes", value=f"{info['rows']:,}")
         c2.metric(label=f"{title} — Colonnes", value=f"{info['cols']}")
@@ -226,9 +233,53 @@ def main() -> None:
         st.session_state['pipeline_a'] = []
     if 'pipeline_b' not in st.session_state:
         st.session_state['pipeline_b'] = []
+    # optional custom datasets loaded by user in the 'Chargement' tab
+    if 'df_a_custom' in st.session_state:
+        df_a = st.session_state['df_a_custom']
+    if 'df_b_custom' in st.session_state:
+        df_b = st.session_state['df_b_custom']
+    # display names for datasets (original filename or uploaded name)
+    name_a = st.session_state.get('name_a', a_path.name)
+    name_b = st.session_state.get('name_b', b_path.name)
 
-    # Top-level tabs: Diagnostic, Nettoyage, Comparaison
-    tab_diag, tab_clean, tab_compare = st.tabs(['Diagnostic — Qualité', 'Nettoyage — Préparer', 'Comparaison'])
+    # Sidebar: presets + sliders (moved here so it's available across tabs)
+    st.sidebar.header('Comparaison & pondérations')
+    st.sidebar.markdown('Sélectionnez un *préréglage* pour appliquer rapidement une configuration de poids, ou personnalisez ci‑dessous.')
+    presets = {
+        'Prototype rapide': (3.0, 1.0, 1.0, 1.0),
+        'Qualité robuste': (2.0, 1.0, 4.0, 2.0),
+        'Favoriser quantité': (1.0, 3.0, 1.0, 0.5),
+        'Minimal nettoyage': (1.0, 1.0, 0.5, 0.5),
+    }
+    preset = st.sidebar.selectbox('Préréglages', list(presets.keys()), index=0)
+    w_t_def, w_r_def, w_m_def, w_o_def = presets[preset]
+    # callback to apply preset values into session_state safely
+    def _apply_preset_cb(w_t: float, w_r: float, w_m: float, w_o: float) -> None:
+        st.session_state['w_target'] = float(w_t)
+        st.session_state['w_rows'] = float(w_r)
+        st.session_state['w_missing'] = float(w_m)
+        st.session_state['w_outlier'] = float(w_o)
+    # place the apply button right under the presets selectbox (sidebar)
+    st.sidebar.button('Appliquer le préréglage', on_click=_apply_preset_cb, kwargs={'w_t': w_t_def, 'w_r': w_r_def, 'w_m': w_m_def, 'w_o': w_o_def})
+    st.sidebar.markdown('')
+    # use session_state values if present so callbacks can update sliders
+    w_target = st.sidebar.slider('Poids — présence colonne cible', 0.0, 5.0, value=st.session_state.get('w_target', float(w_t_def)), key='w_target')
+    w_rows = st.sidebar.slider('Poids — taille (n lignes)', 0.0, 5.0, value=st.session_state.get('w_rows', float(w_r_def)), key='w_rows')
+    w_missing = st.sidebar.slider('Poids — qualité (moins de valeurs manquantes)', 0.0, 5.0, value=st.session_state.get('w_missing', float(w_m_def)), key='w_missing')
+    w_outlier = st.sidebar.slider("Poids — proportion de valeurs aberrantes (numériques)", 0.0, 5.0, value=st.session_state.get('w_outlier', float(w_o_def)), key='w_outlier')
+    with st.sidebar.expander('Aide — signification des poids'):
+        st.markdown(dedent('''
+        • **Présence colonne cible** — avantage si une colonne cible (prix) est déjà présente, réduit le besoin d'étiquetage manuel.
+        • **Taille (lignes)** — favorise les jeux avec plus de lignes pour une meilleure généralisation.
+        • **Qualité (missing)** — pénalise les jeux contenant beaucoup de valeurs manquantes.
+        • **Valeurs aberrantes** — pénalise les jeux où la proportion de valeurs numériques anormales (IQR) est élevée.
+
+        *Conseil visuel* : choisissez *Prototype rapide* pour itérations rapides, *Qualité robuste* pour un jeu plus fiable en production.
+        '''))
+    palette = st.sidebar.selectbox('Palette de couleurs', ['Vert / Rouge', 'Bleu / Orange'])
+
+    # Top-level tabs: Chargement, Diagnostic, Exploration, Nettoyage, Comparaison
+    tab_load, tab_diag, tab_explore, tab_clean, tab_compare = st.tabs(['Chargement — Jeux de données', 'Diagnostic — Qualité', 'Exploration des données', 'Nettoyage — Préparer', 'Comparaison'])
 
     # helper: apply pipeline of operations (simple replayable ops)
     def apply_pipeline(original: pd.DataFrame, pipeline: list[dict]) -> pd.DataFrame:
@@ -237,6 +288,39 @@ def main() -> None:
             if op.get('op') == 'drop':
                 cols = op.get('cols', [])
                 df = df.drop(columns=cols, errors='ignore')
+            elif op.get('op') == 'drop_rows':
+                # drop rows by explicit index list
+                idxs = op.get('index', []) or []
+                try:
+                    df = df.drop(index=[i for i in idxs if i in df.index], errors='ignore')
+                except Exception:
+                    try:
+                        # try positional indices
+                        df = df.drop(index=idxs, errors='ignore')
+                    except Exception:
+                        continue
+            elif op.get('op') == 'drop_rows_cond':
+                # drop rows matching a pandas query condition stored as string
+                cond = op.get('condition')
+                if not cond:
+                    continue
+                try:
+                    mask = df.query(cond).index
+                    df = df.drop(index=mask, errors='ignore')
+                except Exception:
+                    # if query fails, skip
+                    continue
+            elif op.get('op') == 'drop_rows_where_na':
+                col = op.get('col')
+                if not col:
+                    continue
+                if col not in df.columns:
+                    continue
+                try:
+                    mask = df[col].isna()
+                    df = df.loc[~mask]
+                except Exception:
+                    continue
             elif op.get('op') == 'impute':
                 col = op.get('col')
                 val = op.get('val')
@@ -341,55 +425,20 @@ def main() -> None:
                     continue
         return df
 
-    # Diagnostic tab: KPIs, distributions, missingness, corrélations
+    # Diagnostic tab: KPIs only
     with tab_diag:
         left, right = st.columns(2)
         with left:
-            st.header(a_path.name)
-            render_kpis(a_path.name, info_a, a_path)
+            st.header(name_a)
+            render_kpis(name_a, info_a, df=df_a)
         with right:
-            st.header(b_path.name)
-            render_kpis(b_path.name, info_b, b_path)
+            st.header(name_b)
+            render_kpis(name_b, info_b, df=df_b)
 
         st.markdown('---')
 
-        # Sidebar: presets + sliders
-        st.sidebar.header('Comparaison & pondérations')
-        st.sidebar.markdown('Sélectionnez un *préréglage* pour appliquer rapidement une configuration de poids, ou personnalisez ci‑dessous.')
-        presets = {
-            'Prototype rapide': (3.0, 1.0, 1.0, 1.0),
-            'Qualité robuste': (2.0, 1.0, 4.0, 2.0),
-            'Favoriser quantité': (1.0, 3.0, 1.0, 0.5),
-            'Minimal nettoyage': (1.0, 1.0, 0.5, 0.5),
-        }
-        preset = st.sidebar.selectbox('Préréglages', list(presets.keys()), index=0)
-        w_t_def, w_r_def, w_m_def, w_o_def = presets[preset]
-        # callback to apply preset values into session_state safely
-        def _apply_preset_cb(w_t: float, w_r: float, w_m: float, w_o: float) -> None:
-            st.session_state['w_target'] = float(w_t)
-            st.session_state['w_rows'] = float(w_r)
-            st.session_state['w_missing'] = float(w_m)
-            st.session_state['w_outlier'] = float(w_o)
-        # place the apply button right under the presets selectbox (sidebar)
-        st.sidebar.button('Appliquer le préréglage', on_click=_apply_preset_cb, kwargs={'w_t': w_t_def, 'w_r': w_r_def, 'w_m': w_m_def, 'w_o': w_o_def})
-        st.sidebar.markdown('')
-        # use session_state values if present so callbacks can update sliders
-        w_target = st.sidebar.slider('Poids — présence colonne cible', 0.0, 5.0, value=st.session_state.get('w_target', float(w_t_def)), key='w_target')
-        w_rows = st.sidebar.slider('Poids — taille (n lignes)', 0.0, 5.0, value=st.session_state.get('w_rows', float(w_r_def)), key='w_rows')
-        w_missing = st.sidebar.slider('Poids — qualité (moins de valeurs manquantes)', 0.0, 5.0, value=st.session_state.get('w_missing', float(w_m_def)), key='w_missing')
-        w_outlier = st.sidebar.slider("Poids — proportion de valeurs aberrantes (numériques)", 0.0, 5.0, value=st.session_state.get('w_outlier', float(w_o_def)), key='w_outlier')
-        with st.sidebar.expander('Aide — signification des poids'):
-            st.markdown(dedent('''
-            • **Présence colonne cible** — avantage si une colonne cible (prix) est déjà présente, réduit le besoin d'étiquetage manuel.
-            • **Taille (lignes)** — favorise les jeux avec plus de lignes pour une meilleure généralisation.
-            • **Qualité (missing)** — pénalise les jeux contenant beaucoup de valeurs manquantes.
-            • **Valeurs aberrantes** — pénalise les jeux où la proportion de valeurs numériques anormales (IQR) est élevée.
-
-            *Conseil visuel* : choisissez *Prototype rapide* pour itérations rapides, *Qualité robuste* pour un jeu plus fiable en production.
-            '''))
-        palette = st.sidebar.selectbox('Palette de couleurs', ['Vert / Rouge', 'Bleu / Orange'])
-
-        # Diagnostic: exploration interactive
+    # Exploration tab: interactive exploration and visualisations (moved out of Diagnostic)
+    with tab_explore:
         st.subheader('Exploration interactive')
         dataset = st.selectbox('Choisir un jeu de données pour exploration', [a_path.name, b_path.name])
         # Par défaut, afficher la version nettoyée si elle existe en session,
@@ -425,60 +474,123 @@ def main() -> None:
             st.session_state[key_target] = detected_tgt if detected_tgt in df.columns else '(aucune)'
         selected_tgt = st.selectbox('Variable cible (override automatique)', tgt_options, index=default_index, key=key_target)
 
-        col_select = st.selectbox('Choisir une colonne numérique à visualiser', list(df.select_dtypes(include='number').columns))
-        if col_select:
-            color_seq = ['#16a34a'] if palette == 'Vert / Rouge' else ['#2563eb']
-            fig = px.histogram(df, x=col_select, nbins=50, title=f'Distribution: {col_select}', color_discrete_sequence=color_seq)
-            st.plotly_chart(fig, width='stretch')
-            # use selected target override if provided
-            tgt = st.session_state.get(key_target, '(aucune)')
-            if tgt == '(aucune)':
-                tgt = None
-            if tgt and tgt != col_select:
-                try:
-                    import statsmodels  # type: ignore
-                    has_sm = True
-                except Exception:
-                    has_sm = False
-                if has_sm:
-                    fig2 = px.scatter(df, x=col_select, y=tgt, title=f'{col_select} vs {tgt}', trendline='ols', color_discrete_sequence=color_seq)
-                    st.plotly_chart(fig2, width='stretch')
-                else:
-                    fig2 = px.scatter(df, x=col_select, y=tgt, title=f'{col_select} vs {tgt}', color_discrete_sequence=color_seq)
-                    st.plotly_chart(fig2, width='stretch')
-                    st.info('Affichage sans ligne de tendance — installez `statsmodels` pour afficher la régression (pip install statsmodels).')
+        # Section A: Variables numériques — distribution et relation avec la cible
+        st.subheader('Variables numériques — distribution et relation avec la cible')
+        num_cols = df.select_dtypes(include='number').columns.tolist()
+        if not num_cols:
+            st.info('Aucune colonne numérique détectée dans ce jeu.')
+        else:
+            num_choice = st.selectbox('Choisir une colonne numérique à visualiser', [''] + num_cols, key='diag_num_choice')
+            if num_choice:
+                color_seq = ['#16a34a'] if palette == 'Vert / Rouge' else ['#2563eb']
+                # histogramme + densité sommaire
+                fig = px.histogram(df, x=num_choice, nbins=50, title=f'Distribution: {num_choice}', color_discrete_sequence=color_seq)
+                st.plotly_chart(fig, use_container_width=True)
 
-            # Analyse catégorielle par rapport à la cible
-            st.subheader('Analyse catégorielle vs cible')
-            cat_cols = df.select_dtypes(include=['object', 'category', 'string']).columns.tolist()
-            if not cat_cols:
-                st.info('Aucune colonne catégorielle détectée dans ce jeu.')
-            else:
-                cat_choice = st.selectbox('Choisir une colonne catégorielle', [''] + cat_cols)
-                # determine target from session override if present
-                key_target = 'selected_target_a' if dataset == a_path.name else 'selected_target_b'
-                tgt_sel = st.session_state.get(key_target, None)
-                if tgt_sel == '(aucune)':
-                    tgt_sel = None
-                if cat_choice:
-                    if not tgt_sel or tgt_sel not in df.columns or not pd.api.types.is_numeric_dtype(df[tgt_sel]):
-                        st.info('Sélectionnez d\'abord une variable cible numérique via le sélecteur de cible ci‑dessus.')
-                    else:
-                        # limit categories to top N by count to keep plots readable
-                        top_n = 20
-                        counts = df[cat_choice].value_counts(dropna=False)
-                        top_categories = counts.head(top_n).index.tolist()
-                        df_plot = df[df[cat_choice].isin(top_categories)].copy()
-                        agg = df_plot.groupby(cat_choice)[tgt_sel].agg(['mean', 'median', 'count']).reset_index()
-                        agg = agg.sort_values('count', ascending=False)
-                        fig_bar = px.bar(agg, x=cat_choice, y='mean', color='count', title=f'Moyenne de {tgt_sel} par {cat_choice}', labels={'mean': f'Moyenne {tgt_sel}'})
-                        st.plotly_chart(fig_bar, use_container_width=True)
-                        # boxplot (distribution) if categories not too many
+                # boxplot global pour la variable numérique
+                try:
+                    fig_box_global = px.box(df, y=num_choice, title=f'Boxplot (globale) — {num_choice}', color_discrete_sequence=color_seq)
+                    st.plotly_chart(fig_box_global, use_container_width=True)
+                except Exception:
+                    pass
+
+                # show basic numeric summary
+                desc = df[num_choice].describe().to_frame().T
+                st.dataframe(desc, use_container_width=True)
+
+                # relation avec la cible si cible numérique sélectionnée
+                tgt = st.session_state.get(key_target, '(aucune)')
+                if tgt == '(aucune)':
+                    tgt = None
+                if tgt and tgt != num_choice:
+                    if tgt in df.columns and pd.api.types.is_numeric_dtype(df[tgt]):
+                        # scatter with regression (numeric vs target)
                         try:
-                            fig_box = px.box(df_plot, x=cat_choice, y=tgt_sel, title=f'Distribution de {tgt_sel} par {cat_choice}')
-                            st.plotly_chart(fig_box, use_container_width=True)
+                            import statsmodels  # type: ignore
+                            has_sm = True
                         except Exception:
-                            st.info('Impossible d\'afficher le boxplot pour cette colonne (trop de catégories ou types incompatibles).')
+                            has_sm = False
+                        if has_sm:
+                            fig2 = px.scatter(df, x=num_choice, y=tgt, title=f'{num_choice} vs {tgt}', trendline='ols', color_discrete_sequence=color_seq)
+                            st.plotly_chart(fig2, use_container_width=True)
+                        else:
+                            fig2 = px.scatter(df, x=num_choice, y=tgt, title=f'{num_choice} vs {tgt}', color_discrete_sequence=color_seq)
+                            st.plotly_chart(fig2, use_container_width=True)
+                            st.info('Affichage sans ligne de tendance — installez `statsmodels` pour afficher la régression (pip install statsmodels).')
+
+                        # Additional: boxplot of target grouped by quantile-bins of the numeric variable
+                        try:
+                            valid = df[[num_choice, tgt]].dropna()
+                            if len(valid) > 0:
+                                # use up to 10 quantile bins, drop duplicates when values are constant
+                                n_bins = min(10, len(valid))
+                                valid = valid.copy()
+                                try:
+                                    valid['bin'] = pd.qcut(valid[num_choice], q=n_bins, duplicates='drop')
+                                except Exception:
+                                    # fallback to equal-width bins
+                                    valid['bin'] = pd.cut(valid[num_choice], bins=n_bins)
+                                fig_box_bins = px.box(valid, x='bin', y=tgt, title=f'Distribution de {tgt} par bins de {num_choice}', labels={'bin': f'Bins de {num_choice}', tgt: tgt})
+                                st.plotly_chart(fig_box_bins, use_container_width=True)
+                                # show stats per bin
+                                stats = valid.groupby('bin')[tgt].agg(['count', 'mean', 'median', 'std']).reset_index()
+                                st.dataframe(stats, use_container_width=True)
+                        except Exception:
+                            pass
+                    else:
+                        st.info('La variable cible sélectionnée n\'est pas numérique ou n\'existe pas dans ce jeu.')
+
+        # Section B: Variables catégorielles — distribution de la cible par modalité
+        st.subheader('Variables catégorielles — comparaison de la cible par modalité')
+        cat_cols = df.select_dtypes(include=['object', 'category', 'string']).columns.tolist()
+        if not cat_cols:
+            st.info('Aucune colonne catégorielle détectée dans ce jeu.')
+        else:
+            cat_choice = st.selectbox('Choisir une colonne catégorielle', [''] + cat_cols, key='diag_cat_choice')
+            # determine target from session override if present
+            tgt_sel = st.session_state.get(key_target, None)
+            if tgt_sel == '(aucune)':
+                tgt_sel = None
+            if cat_choice:
+                if not tgt_sel or tgt_sel not in df.columns or not pd.api.types.is_numeric_dtype(df[tgt_sel]):
+                    st.info('Sélectionnez d\'abord une variable cible numérique via le sélecteur de cible ci‑dessus.')
+                else:
+                    # limit categories to top N by count to keep plots readable
+                    top_n = 20
+                    counts = df[cat_choice].value_counts(dropna=False)
+                    top_categories = counts.head(top_n).index.tolist()
+                    df_plot = df[df[cat_choice].isin(top_categories)].copy()
+                    agg = df_plot.groupby(cat_choice)[tgt_sel].agg(['mean', 'median', 'count']).reset_index()
+                    agg = agg.sort_values('count', ascending=False)
+                    fig_bar = px.bar(agg, x=cat_choice, y='mean', color='count', title=f'Moyenne de {tgt_sel} par {cat_choice}', labels={'mean': f'Moyenne {tgt_sel}'})
+                    st.plotly_chart(fig_bar, use_container_width=True)
+                    # boxplot (distribution) if categories not too many
+                    try:
+                        fig_box = px.box(df_plot, x=cat_choice, y=tgt_sel, title=f'Distribution de {tgt_sel} par {cat_choice}')
+                        st.plotly_chart(fig_box, use_container_width=True)
+                    except Exception:
+                        st.info('Impossible d\'afficher le boxplot pour cette colonne (trop de catégories ou types incompatibles).')
+
+                    # Visualisation: delta de la moyenne par modalité vs moyenne globale (positive / negative)
+                    try:
+                        grp = df_plot.groupby(cat_choice)[tgt_sel].agg(['count', 'mean', 'median', 'std']).reset_index()
+                        global_mean = df[tgt_sel].mean()
+                        grp['delta'] = grp['mean'] - global_mean
+                        # standard error (NaN possible if count<=1)
+                        grp['se'] = grp['std'] / (grp['count'] ** 0.5)
+                        grp = grp.sort_values('delta', ascending=False).reset_index(drop=True)
+                        grp['sign'] = grp['delta'].apply(lambda x: 'positive' if x > 0 else ('negative' if x < 0 else 'neutral'))
+                        color_map = {'positive': '#16a34a', 'negative': '#dc2626', 'neutral': '#6b7280'}
+                        # bar chart of delta (mean - global_mean) with error bars (se)
+                        fig_delta = px.bar(grp, x=cat_choice, y='delta', color='sign', color_discrete_map=color_map,
+                                           error_y='se', hover_data=['count', 'mean', 'median', 'std'],
+                                           title=f'Différence de la moyenne de {tgt_sel} vs moyenne globale — {cat_choice}')
+                        fig_delta.update_layout(xaxis={'categoryorder': 'total descending'})
+                        st.plotly_chart(fig_delta, use_container_width=True)
+                        # display table with key stats for inspection
+                        st.dataframe(grp[[cat_choice, 'count', 'mean', 'median', 'std', 'delta']].rename(columns={'delta': 'mean - global_mean'}), use_container_width=True)
+                    except Exception:
+                        pass
 
         st.subheader('Vue d\'ensemble — valeurs manquantes')
         miss = df.isna().sum().sort_values(ascending=False).head(30)
@@ -495,7 +607,66 @@ def main() -> None:
         miss_df['color'] = miss_df['missing_%'].map(miss_color)
         fig_m = px.bar(miss_df, x='col', y='missing_%', title='Top 30 colonnes par % de valeurs manquantes', color='color', color_discrete_map='identity')
         fig_m.update_layout(xaxis={'categoryorder':'total descending'}, showlegend=False)
-        st.plotly_chart(fig_m, width='stretch')
+        st.plotly_chart(fig_m, use_container_width=True)
+
+        st.markdown('---')
+
+    # Data Loading tab: allow user to upload or select CSVs for dataset A and B
+    with tab_load:
+        st.header('Chargement des jeux de données')
+        st.markdown('Choisissez ou téléversez deux fichiers CSV à comparer. Si rien n\'est chargé, les jeux par défaut seront utilisés.')
+        files = sorted([p.name for p in DATA_DIR.glob('*.csv')])
+        col_a, col_b = st.columns(2)
+        with col_a:
+            st.subheader('Jeu A')
+            sel_a = st.selectbox('Choisir un CSV existant (data/)', [''] + files, key='sel_a_file')
+            up_a = st.file_uploader('Ou téléverser un CSV pour A', type=['csv'], key='upload_a')
+            if sel_a:
+                path_a = DATA_DIR / sel_a
+                try:
+                    df_new = pd.read_csv(path_a)
+                    st.session_state['df_a_custom'] = df_new
+                    st.session_state['name_a'] = sel_a
+                    st.session_state['df_a_clean'] = df_new.copy()
+                    st.session_state['pipeline_a'] = []
+                    st.success(f'Fichier {sel_a} chargé pour Jeu A')
+                except Exception as e:
+                    st.error(f'Echec lecture {sel_a}: {e}')
+            if up_a is not None:
+                try:
+                    df_new = pd.read_csv(up_a)
+                    st.session_state['df_a_custom'] = df_new
+                    st.session_state['name_a'] = getattr(up_a, 'name', 'upload_a.csv')
+                    st.session_state['df_a_clean'] = df_new.copy()
+                    st.session_state['pipeline_a'] = []
+                    st.success('CSV uploadé et chargé pour Jeu A')
+                except Exception as e:
+                    st.error(f'Echec lecture du CSV uploadé: {e}')
+        with col_b:
+            st.subheader('Jeu B')
+            sel_b = st.selectbox('Choisir un CSV existant (data/)', [''] + files, key='sel_b_file')
+            up_b = st.file_uploader('Ou téléverser un CSV pour B', type=['csv'], key='upload_b')
+            if sel_b:
+                path_b2 = DATA_DIR / sel_b
+                try:
+                    df_new = pd.read_csv(path_b2)
+                    st.session_state['df_b_custom'] = df_new
+                    st.session_state['name_b'] = sel_b
+                    st.session_state['df_b_clean'] = df_new.copy()
+                    st.session_state['pipeline_b'] = []
+                    st.success(f'Fichier {sel_b} chargé pour Jeu B')
+                except Exception as e:
+                    st.error(f'Echec lecture {sel_b}: {e}')
+            if up_b is not None:
+                try:
+                    df_new = pd.read_csv(up_b)
+                    st.session_state['df_b_custom'] = df_new
+                    st.session_state['name_b'] = getattr(up_b, 'name', 'upload_b.csv')
+                    st.session_state['df_b_clean'] = df_new.copy()
+                    st.session_state['pipeline_b'] = []
+                    st.success('CSV uploadé et chargé pour Jeu B')
+                except Exception as e:
+                    st.error(f'Echec lecture du CSV uploadé: {e}')
 
         st.markdown('---')
 
@@ -642,6 +813,66 @@ def main() -> None:
                     st.success('Suppression appliquée en session.')
                 else:
                     st.info('Aucune colonne sélectionnée — rien à appliquer.')
+            # Suppression de lignes
+            st.markdown('**Supprimer des lignes**')
+            row_mode = st.radio('Mode', ['Par index (sélection)', 'Par condition (pandas query)'], key=f'row_del_mode_{ds_clean}')
+            if row_mode.startswith('Par index'):
+                preview_idx = _make_preview(df_clean, preview_choice).index.tolist()
+                sel_rows = st.multiselect('Sélectionner des index à supprimer (aperçu)', preview_idx, key=f'sel_rows_{ds_clean}')
+                if st.button('Prévisualiser suppression de lignes'):
+                    if not sel_rows:
+                        st.info('Aucun index sélectionné pour suppression.')
+                    else:
+                        preview = _make_preview(df_clean, preview_choice).copy()
+                        mask = preview.index.isin(sel_rows)
+                        def _hl_row(row):
+                            return ['background-color: #ffdddd' if mask.loc[row.name] else '' for _ in row]
+                        components.html(preview.style.apply(_hl_row, axis=1).to_html(), height=400, scrolling=True)
+                if st.button('Appliquer suppression de lignes'):
+                    if not sel_rows:
+                        st.info('Aucun index sélectionné — rien à appliquer.')
+                    else:
+                        if ds_clean == a_path.name:
+                            st.session_state['df_a_clean'] = df_clean.drop(index=sel_rows, errors='ignore')
+                            st.session_state['pipeline_a'].append({'op': 'drop_rows', 'index': sel_rows})
+                        else:
+                            st.session_state['df_b_clean'] = df_clean.drop(index=sel_rows, errors='ignore')
+                            st.session_state['pipeline_b'].append({'op': 'drop_rows', 'index': sel_rows})
+                        st.success(f'{len(sel_rows)} lignes supprimées et ajoutées au pipeline.')
+            else:
+                cond = st.text_input('Condition pandas (ex: price > 100000 and operation == "sale")', key=f'row_cond_{ds_clean}')
+                if st.button('Prévisualiser suppression par condition'):
+                    if not cond:
+                        st.info('Aucune condition fournie.')
+                    else:
+                        try:
+                            matched = df_clean.query(cond)
+                            if matched.empty:
+                                st.info('Aucune ligne ne correspond à la condition.')
+                            else:
+                                def _hl_cond(row):
+                                    try:
+                                        return ['background-color: #ffdddd' if row.name in matched.index else '' for _ in row]
+                                    except Exception:
+                                        return ['' for _ in row]
+                                components.html(_make_preview(df_clean, preview_choice).style.apply(_hl_cond, axis=1).to_html(), height=400, scrolling=True)
+                        except Exception as e:
+                            st.error(f'Condition invalide: {e}')
+                if st.button('Appliquer suppression par condition'):
+                    if not cond:
+                        st.info('Aucune condition fournie — rien à appliquer.')
+                    else:
+                        try:
+                            matched_idx = df_clean.query(cond).index
+                            if ds_clean == a_path.name:
+                                st.session_state['df_a_clean'] = df_clean.drop(index=matched_idx, errors='ignore')
+                                st.session_state['pipeline_a'].append({'op': 'drop_rows_cond', 'condition': cond})
+                            else:
+                                st.session_state['df_b_clean'] = df_clean.drop(index=matched_idx, errors='ignore')
+                                st.session_state['pipeline_b'].append({'op': 'drop_rows_cond', 'condition': cond})
+                            st.success(f'{len(matched_idx)} lignes supprimées et ajoutées au pipeline.')
+                        except Exception as e:
+                            st.error(f'Erreur application condition: {e}')
             # Options pour supprimer automatiquement colonnes complètement vides (0%) ou entièrement complètes (100%)
             st.markdown('**Suppression automatique selon complétude**')
             comp = df_clean.notna().mean()
@@ -692,6 +923,34 @@ def main() -> None:
                             st.session_state['df_b_clean'] = df_clean.drop(columns=full_cols, errors='ignore')
                             st.session_state['pipeline_b'].append({'op':'drop', 'cols': full_cols})
                         st.success(f"{len(full_cols)} colonnes complètes supprimées et ajoutées au pipeline.")
+            # Supprimer toutes les lignes où une colonne sélectionnée est manquante
+            st.markdown('**Supprimer lignes avec valeurs manquantes (colonne)**')
+            na_col = st.selectbox('Choisir une colonne (supprimer lignes où NA)', [''] + list(df_clean.columns), key=f'na_col_{ds_clean}')
+            if na_col:
+                if st.button('Prévisualiser lignes manquantes pour cette colonne'):
+                    preview = _make_preview(df_clean, preview_choice).copy()
+                    mask = preview[na_col].isna()
+                    if mask.any():
+                        def _hl_na(row):
+                            return ['background-color: #ffdddd' if row.name in preview[mask].index else '' for _ in row]
+                        components.html(preview.style.apply(_hl_na, axis=1).to_html(), height=400, scrolling=True)
+                    else:
+                        st.info('Aucune valeur manquante trouvée dans l\'aperçu pour cette colonne.')
+                if st.button('Supprimer toutes les lignes où cette colonne est manquante'):
+                    try:
+                        matched_idx = df_clean[df_clean[na_col].isna()].index
+                        if matched_idx.empty:
+                            st.info('Aucune ligne à supprimer (aucune valeur manquante).')
+                        else:
+                            if ds_clean == a_path.name:
+                                st.session_state['df_a_clean'] = df_clean.drop(index=matched_idx, errors='ignore')
+                                st.session_state['pipeline_a'].append({'op': 'drop_rows_where_na', 'col': na_col})
+                            else:
+                                st.session_state['df_b_clean'] = df_clean.drop(index=matched_idx, errors='ignore')
+                                st.session_state['pipeline_b'].append({'op': 'drop_rows_where_na', 'col': na_col})
+                            st.success(f'{len(matched_idx)} lignes supprimées et ajoutées au pipeline.')
+                    except Exception as e:
+                        st.error(f'Erreur lors de la suppression: {e}')
         with c2:
             num_cols = df_clean.select_dtypes(include='number').columns.tolist()
             impute_col = st.selectbox('Imputer (numérique) — choisir colonne', [''] + num_cols)
@@ -1096,6 +1355,43 @@ def main() -> None:
                         st.success('Modification appliquée et ajoutée au pipeline.')
 
         st.markdown('---')
+        # Comparer colonnes — combinaisons
+        st.subheader('Comparer colonnes — combinaisons')
+        with st.expander('Explorer combinaisons de valeurs', expanded=False):
+            comb_primary = st.selectbox('Colonne principale (ex: n_floors)', list(df_clean.columns), key=f'comb_primary_{ds_clean}')
+            comb_condition = st.selectbox('Condition', ['Afficher lignes où la colonne principale est manquante', 'Afficher lignes où la colonne principale est non nulle', 'Afficher toutes les lignes'], index=0, key=f'comb_condition_{ds_clean}')
+            comb_others = st.multiselect('Colonnes à comparer (au moins une)', [c for c in df_clean.columns if c != comb_primary], key=f'comb_others_{ds_clean}')
+            comb_topn = st.number_input('Top N combinaisons à afficher', min_value=5, max_value=200, value=20, step=5, key=f'comb_topn_{ds_clean}')
+            if st.button('Analyser combinaisons', key=f'comb_analyze_{ds_clean}'):
+                df_local = df_clean.copy()
+                if comb_condition.startswith('Afficher lignes où la colonne principale est manquante'):
+                    df_local = df_local[df_local[comb_primary].isna()]
+                elif comb_condition.startswith('Afficher lignes où la colonne principale est non nulle'):
+                    df_local = df_local[df_local[comb_primary].notna()]
+                # require at least one other column
+                if not comb_others:
+                    st.info('Sélectionnez au moins une colonne à comparer.')
+                else:
+                    # include primary column values as well in the combination
+                    cols = [comb_primary] + comb_others
+                    combo_series = df_local[cols].fillna('<NA>').astype(str).agg(' | '.join, axis=1)
+                    combo_counts = combo_series.value_counts().reset_index()
+                    combo_counts.columns = ['combination', 'count']
+                    combo_counts['pct'] = combo_counts['count'] / (len(df_local) if len(df_local) > 0 else 1) * 100
+                    st.markdown(f"Lignes filtrées: **{len(df_local)}**")
+                    st.dataframe(combo_counts.head(comb_topn), use_container_width=True)
+                    try:
+                        figc = px.bar(combo_counts.head(comb_topn), x='combination', y='count', title='Top combinations', color='count')
+                        st.plotly_chart(figc, use_container_width=True)
+                    except Exception:
+                        pass
+                    sel_combo = st.selectbox('Voir exemples pour une combinaison', [''] + combo_counts['combination'].head(comb_topn).tolist(), key=f'comb_select_{ds_clean}')
+                    if sel_combo:
+                        mask = combo_series == sel_combo
+                        st.dataframe(df_local.loc[mask].head(200), use_container_width=True)
+                    csv = combo_counts.to_csv(index=False)
+                    st.download_button('Télécharger combinaisons (CSV)', csv, file_name=f'combinaisons_{ds_clean}.csv')
+
         # Legend explaining red highlight and undo actions
         st.markdown('**Légende — Prévisualisation**')
         st.markdown("""
@@ -1152,6 +1448,12 @@ def main() -> None:
             lines.append(f"- Opérations en session: {len(pipeline_ops)}")
             lines.append(f"- Forme originale: {orig_df.shape[0]} lignes × {orig_df.shape[1]} colonnes")
             lines.append(f"- Forme actuelle: {cleaned_df.shape[0]} lignes × {cleaned_df.shape[1]} colonnes")
+            # nombre de lignes supprimées (positif si on a perdu des lignes)
+            try:
+                removed_rows = int(orig_df.shape[0] - cleaned_df.shape[0])
+            except Exception:
+                removed_rows = 'N/A'
+            lines.append(f"- Lignes supprimées: {removed_rows}")
             missing_orig = int(orig_df.isna().sum().sum())
             missing_new = int(cleaned_df.isna().sum().sum())
             lines.append(f"- Valeurs manquantes (avant): {missing_orig}")
@@ -1174,8 +1476,40 @@ def main() -> None:
                         lines.append(f"{i}. Typage — colonnes: {', '.join(op.get('cols', []))} → {op.get('dtype')}")
                     elif typ == 'scale':
                         lines.append(f"{i}. Normalisation — colonnes: {', '.join(op.get('cols', []))} — méthode: {op.get('method')}")
+                    elif typ == 'drop_rows':
+                        idxs = op.get('index', [])
+                        # present indices as comma-separated
+                        try:
+                            ids = ', '.join([str(x) for x in idxs]) if idxs else 'Aucune'
+                        except Exception:
+                            ids = str(idxs)
+                        lines.append(f"{i}. Suppression — lignes (index): {ids}")
+                    elif typ == 'drop_rows_cond':
+                        cond = op.get('condition', '')
+                        lines.append(f"{i}. Suppression — condition: {cond}")
+                    elif typ == 'drop_rows_where_na':
+                        col = op.get('col', '')
+                        lines.append(f"{i}. Suppression — lignes où la colonne '{col}' est manquante")
+                    elif typ == 'drop_duplicates':
+                        subset = op.get('subset', [])
+                        keep = op.get('keep', 'first')
+                        subset_txt = ', '.join(subset) if subset else 'toutes les colonnes'
+                        if keep is False:
+                            keep_txt = 'supprimer toutes les lignes dupliquées'
+                        else:
+                            keep_txt = f"garder: {keep}"
+                        lines.append(f"{i}. Suppression de doublons — colonnes: {subset_txt} — action: {keep_txt}")
+                    elif typ == 'set_value':
+                        idx = op.get('index')
+                        col = op.get('col')
+                        val = op.get('val')
+                        lines.append(f"{i}. Modification — index: {idx} — colonne: {col} — valeur: {val}")
                     else:
-                        lines.append(f"{i}. {op}")
+                        # fallback: try to present dict keys in French-friendly way
+                        try:
+                            lines.append(f"{i}. Opération: {json.dumps(op, default=str, ensure_ascii=False)}")
+                        except Exception:
+                            lines.append(f"{i}. {op}")
             lines.append("")
             lines.append("## Pipeline (JSON)")
             lines.append("```json")
