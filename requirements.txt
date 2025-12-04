@@ -10,3 +10,7 @@ notebook
 ipykernel
 python-dotenv>=0.21.0
 gunicorn>=20.1.0
+requests>=2.0
+cairosvg>=2.0
+streamlit>=1.24
+plotly>=5.0

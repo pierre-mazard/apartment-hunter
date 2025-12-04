@@ -1,0 +1,218 @@
+nohup: ignoring input
+
+  You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://192.168.73.124:8501
+  External URL: http://88.190.166.232:8501
+
+2025-12-02 20:39:59.227 Script compilation error
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 571, in _run_script
+    code = self._script_cache.get_bytecode(script_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_cache.py", line 74, in get_bytecode
+    bytecode = compile(  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 343
+    from __future__ import annotations
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: from __future__ imports must occur at the beginning of the file
+2025-12-02 20:39:59.229 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-02 20:50:33.984 Script compilation error
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 571, in _run_script
+    code = self._script_cache.get_bytecode(script_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_cache.py", line 72, in get_bytecode
+    filebody = magic.add_magic(filebody, script_path)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/magic.py", line 45, in add_magic
+    tree = ast.parse(code, script_path, "exec")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/ast.py", line 52, in parse
+    return compile(source, filename, mode, flags,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 3
+    tgt_b = detect_target(df_b) is not None
+IndentationError: unexpected indent
+2025-12-02 20:50:33.994 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-02 20:51:29.949 Script compilation error
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 571, in _run_script
+    code = self._script_cache.get_bytecode(script_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_cache.py", line 74, in get_bytecode
+    bytecode = compile(  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 103
+    from __future__ import annotations
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: from __future__ imports must occur at the beginning of the file
+2025-12-02 20:51:29.950 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-02 20:52:22.457 Script compilation error
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 571, in _run_script
+    code = self._script_cache.get_bytecode(script_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_cache.py", line 74, in get_bytecode
+    bytecode = compile(  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 103
+    from __future__ import annotations
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: from __future__ imports must occur at the beginning of the file
+2025-12-02 20:52:22.463 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-02 21:00:27.999 Uncaught app execution
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 669, in code_to_exec
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 311, in <module>
+    miss_df = pd.DataFrame({'col': miss_pct.index, 'missing_%': miss_pct.values})
+                                   ^^^^^^^^
+NameError: name 'miss_pct' is not defined
+2025-12-02 21:02:09.626 Uncaught app execution
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 669, in code_to_exec
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 310, in <module>
+    main()
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 150, in main
+    st.session_state['w_target'] = float(w_t_def)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/metrics_util.py", line 447, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/state/session_state_proxy.py", line 114, in __setitem__
+    get_session_state()[key] = value
+    ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/state/safe_session_state.py", line 109, in __setitem__
+    self._state[key] = value
+    ~~~~~~~~~~~^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/state/session_state.py", line 540, in __setitem__
+    raise StreamlitAPIException(
+streamlit.errors.StreamlitAPIException: `st.session_state.w_target` cannot be modified after the widget with key `w_target` is instantiated.
+2025-12-02 21:02:12.274 Uncaught app execution
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 669, in code_to_exec
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 310, in <module>
+    main()
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 150, in main
+    st.session_state['w_target'] = float(w_t_def)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/metrics_util.py", line 447, in wrapped_func
+    result = non_optional_func(*args, **kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/state/session_state_proxy.py", line 114, in __setitem__
+    get_session_state()[key] = value
+    ~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/state/safe_session_state.py", line 109, in __setitem__
+    self._state[key] = value
+    ~~~~~~~~~~~^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/state/session_state.py", line 540, in __setitem__
+    raise StreamlitAPIException(
+streamlit.errors.StreamlitAPIException: `st.session_state.w_target` cannot be modified after the widget with key `w_target` is instantiated.
+2025-12-02 21:02:30.026 Uncaught app execution
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/exec_code.py", line 129, in exec_func_with_error_handling
+    result = func()
+             ^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 669, in code_to_exec
+    exec(code, module.__dict__)  # noqa: S102
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 311, in <module>
+    miss_df = pd.DataFrame({'col': miss_pct.index, 'missing_%': miss_pct.values})
+                                   ^^^^^^^^
+NameError: name 'miss_pct' is not defined
+2025-12-02 21:03:05.438 Script compilation error
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 571, in _run_script
+    code = self._script_cache.get_bytecode(script_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_cache.py", line 74, in get_bytecode
+    bytecode = compile(  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 138
+    from __future__ import annotations
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: from __future__ imports must occur at the beginning of the file
+2025-12-02 21:03:05.441 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-02 21:03:22.684 Script compilation error
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 571, in _run_script
+    code = self._script_cache.get_bytecode(script_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_cache.py", line 74, in get_bytecode
+    bytecode = compile(  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 138
+    from __future__ import annotations
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: from __future__ imports must occur at the beginning of the file
+2025-12-02 21:03:22.686 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-02 21:03:27.974 Script compilation error
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 571, in _run_script
+    code = self._script_cache.get_bytecode(script_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_cache.py", line 74, in get_bytecode
+    bytecode = compile(  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 138
+    from __future__ import annotations
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: from __future__ imports must occur at the beginning of the file
+2025-12-02 21:03:27.976 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-02 21:04:41.092 Script compilation error
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 571, in _run_script
+    code = self._script_cache.get_bytecode(script_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_cache.py", line 74, in get_bytecode
+    bytecode = compile(  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 132
+    from __future__ import annotations
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: from __future__ imports must occur at the beginning of the file
+2025-12-02 21:04:41.094 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-02 21:04:53.514 Script compilation error
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 571, in _run_script
+    code = self._script_cache.get_bytecode(script_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_cache.py", line 74, in get_bytecode
+    bytecode = compile(  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 132
+    from __future__ import annotations
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: from __future__ imports must occur at the beginning of the file
+2025-12-02 21:04:53.516 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+2025-12-02 21:06:57.209 Script compilation error
+Traceback (most recent call last):
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_runner.py", line 571, in _run_script
+    code = self._script_cache.get_bytecode(script_path)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/.venv/lib/python3.12/site-packages/streamlit/runtime/scriptrunner/script_cache.py", line 74, in get_bytecode
+    bytecode = compile(  # type: ignore
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pmazard/projects/apartment_hunter/apps/compare_datasets_streamlit.py", line 132
+    from __future__ import annotations
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+SyntaxError: from __future__ imports must occur at the beginning of the file
+2025-12-02 21:06:57.212 Thread 'MainThread': missing ScriptRunContext! This warning can be ignored when running in bare mode.
+  Stopping...
