@@ -1,0 +1,419 @@
+[
+  {
+    "meta": {
+      "raw": "houses_Madrid.csv",
+      "proc": "houses_Madrid.20260108_150611.74ae7182.processing.csv",
+      "updated_at": "2026-01-08T17:11:15.199321",
+      "rows_original": 21742,
+      "cols_original": 58,
+      "rows_final": 21483,
+      "cols_final": 47,
+      "rows_removed_total": 259,
+      "missing_before": 542327,
+      "missing_after": 184221,
+      "cols_removed": [
+        "Unnamed: 0",
+        "id",
+        "title",
+        "subtitle",
+        "sq_mt_useful",
+        "sq_mt_allotment",
+        "latitude",
+        "longitude",
+        "raw_address",
+        "is_exact_address_hidden",
+        "street_number",
+        "portal",
+        "door",
+        "neighborhood_id",
+        "operation",
+        "rent_price",
+        "rent_price_by_area",
+        "is_rent_price_known",
+        "is_buy_price_known",
+        "house_type_id",
+        "has_central_heating",
+        "has_individual_heating",
+        "are_pets_allowed",
+        "is_furnished",
+        "is_kitchen_equipped",
+        "has_private_parking",
+        "has_public_parking"
+      ],
+      "cols_added": [
+        "sq_mt_built_imputed_flag",
+        "n_bathrooms_imputed_flag",
+        "n_floors_imputed_flag",
+        "floor_imputed_flag",
+        "is_new_development_imputed_flag",
+        "built_year_imputed_flag",
+        "has_lift_imputed_flag",
+        "is_exterior_imputed_flag",
+        "house_type_cat",
+        "house_type_name",
+        "neighborhood_code",
+        "neighborhood_name",
+        "neighborhood_price_sqm",
+        "district_code",
+        "district_name",
+        "heating_type"
+      ],
+      "ops_count": 40,
+      "op_summaries": [
+        "Suppression de colonnes — sélection manuelle — Colonnes n'apportant aucunes informations en rapport avec la cible (2): Unnamed: 0, id",
+        "Suppression de colonnes — colonnes vides (0%) (10): latitude, longitude, portal, door, rent_price_by_area, are_pets_allowed, is_furnished, is_kitchen_equipped, has_private_parking, has_public_parking",
+        "Suppression de doublons — colonnes: toutes les colonnes — action: garder first — lignes supprimées: 179",
+        "Imputation calculée — sq_mt_built = buy_price / buy_price_by_area (int)",
+        "Suppression de colonnes — sélection manuelle — Colonnes présentant trop de valeurs manquantes (37.9%) et redondante avec sq_mt_built (1): sq_mt_useful",
+        "Imputation — house_type_id = HouseType 0: Estudio",
+        "Scission de colonne — house_type_id → house_type_cat, house_type_name (suppression colonne source)",
+        "Suppression de colonnes — sélection manuelle — Colonne sans utilité, les valeurs imputée étant absolument certaines  (1): house_type_id_imputed_flag",
+        "Imputation — mode par groupe — n_bathrooms groupé par house_type_cat",
+        "Imputation — n_floors = 0.0",
+        "Suppression de colonnes — sélection manuelle — Colonne présentant trop de valeurs manquantes et aberrantes  (1): sq_mt_allotment",
+        "Suppression de colonnes — sélection manuelle — Colonne redondante avec street_name et street_number (1): raw_address",
+        "Suppression de colonnes — sélection manuelle — Données ne présentant aucunes influences réelles sur la cible  (1): is_exact_address_hidden",
+        "Imputation par extraction — street_name extrait de title (après 'en venta en')",
+        "Suppression de colonnes — sélection manuelle — Colonne sans utilité, les valeurs imputée étant absolument certaines (1): street_name_imputed_flag",
+        "Nettoyage texte — suppression de 's/n' dans street_name",
+        "Suppression de colonnes — sélection manuelle — Trop de valeurs manquantes et actuellement granularité trop fine, a tester plus tard (1): street_number",
+        "Suppression de colonnes — sélection manuelle — Données redondantes avec street_name (1): title",
+        "Suppression de colonnes — sélection manuelle — Données redondantes avec nehgborhood_id  (1): subtitle",
+        "Imputation — floor = 0",
+        "Imputation — is_floor_under = False",
+        "Suppression de colonnes — sélection manuelle — Données non nécessaire  (1): is_floor_under_imputed_flag",
+        "Suppression de colonnes — sélection manuelle — Données toutes identique et non pertinentes  (1): operation",
+        "Scission quartier — neighborhood_id → neighborhood_code, neighborhood_name, neighborhood_price_sqm, district_code, district_name (suppression colonne source)",
+        "Suppression de colonnes — sélection manuelle — Donnée aberrantes et non utiles pour les premiers tests  (1): rent_price",
+        "Suppression de colonnes — sélection manuelle — Données absentes  (1): is_rent_price_known",
+        "Suppression de colonnes — sélection manuelle — Données inutiles  (1): is_buy_price_known",
+        "Imputation — is_new_development = False",
+        "Suppression de lignes (NA dans district_name) — lignes supprimées: 80",
+        "Imputation — built_year par mode/médiane groupé par: district_name, neighborhood_name, neighborhood_code",
+        "Imputation — has_central_heating = False",
+        "Imputation — has_individual_heating = False",
+        "Fusion booléenne — has_central_heating + has_individual_heating → heating_type (fusion + suppression)",
+        "Suppression de colonnes — sélection manuelle — Colonnes n'étants plus utiles  (2): has_central_heating_imputed_flag, has_individual_heating_imputed_flag",
+        "Imputation — has_ac = False",
+        "Suppression de colonnes — sélection manuelle — Colonne n'étants plus utile (1): has_ac_imputed_flag",
+        "Imputation — has_fitted_wardrobes = False",
+        "Suppression de colonnes — sélection manuelle — Colonne n'étant plus utile (1): has_fitted_wardrobes_imputed_flag",
+        "Imputation — has_lift = Unknown",
+        "Imputation — is_exterior = Unknown"
+      ]
+    }
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "Unnamed: 0",
+      "id"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Colonnes n'apportant aucunes informations en rapport avec la cible"
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "latitude",
+      "longitude",
+      "portal",
+      "door",
+      "rent_price_by_area",
+      "are_pets_allowed",
+      "is_furnished",
+      "is_kitchen_equipped",
+      "has_private_parking",
+      "has_public_parking"
+    ],
+    "reason": "auto_empty_cols_0"
+  },
+  {
+    "op": "drop_duplicates",
+    "subset": [],
+    "keep": "first",
+    "rows_removed": 179
+  },
+  {
+    "op": "impute_calc",
+    "col": "sq_mt_built",
+    "numerator": "buy_price",
+    "denominator": "buy_price_by_area",
+    "round": "int",
+    "flag_col": "sq_mt_built_imputed_flag"
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "sq_mt_useful"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Colonnes présentant trop de valeurs manquantes (37.9%) et redondante avec sq_mt_built"
+  },
+  {
+    "op": "impute",
+    "col": "house_type_id",
+    "val": "HouseType 0: Estudio",
+    "strategy": "const",
+    "flag_col": "house_type_id_imputed_flag"
+  },
+  {
+    "op": "split_category",
+    "col": "house_type_id",
+    "pattern": ":",
+    "col_id": "house_type_cat",
+    "col_desc": "house_type_name",
+    "drop_source": true
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "house_type_id_imputed_flag"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Colonne sans utilité, les valeurs imputée étant absolument certaines "
+  },
+  {
+    "op": "fillna_mode",
+    "cols": [
+      "n_bathrooms"
+    ],
+    "groupby": "house_type_cat",
+    "flag_col": "n_bathrooms_imputed_flag"
+  },
+  {
+    "op": "impute",
+    "col": "n_floors",
+    "val": 0.0,
+    "strategy": "const",
+    "flag_col": "n_floors_imputed_flag"
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "sq_mt_allotment"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Colonne présentant trop de valeurs manquantes et aberrantes "
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "raw_address"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Colonne redondante avec street_name et street_number"
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "is_exact_address_hidden"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Données ne présentant aucunes influences réelles sur la cible "
+  },
+  {
+    "op": "impute_extract_text",
+    "col_source": "title",
+    "col_target": "street_name",
+    "extract_pattern": "en venta en",
+    "flag_col": "street_name_imputed_flag"
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "street_name_imputed_flag"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Colonne sans utilité, les valeurs imputée étant absolument certaines"
+  },
+  {
+    "op": "remove_text",
+    "col": "street_name",
+    "text": "s/n"
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "street_number"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Trop de valeurs manquantes et actuellement granularité trop fine, a tester plus tard"
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "title"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Données redondantes avec street_name"
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "subtitle"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Données redondantes avec nehgborhood_id "
+  },
+  {
+    "op": "impute",
+    "col": "floor",
+    "val": "0",
+    "strategy": "const",
+    "flag_col": "floor_imputed_flag"
+  },
+  {
+    "op": "impute",
+    "col": "is_floor_under",
+    "val": "False",
+    "strategy": "const",
+    "flag_col": "is_floor_under_imputed_flag"
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "is_floor_under_imputed_flag"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Données non nécessaire "
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "operation"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Données toutes identique et non pertinentes "
+  },
+  {
+    "op": "split_neighborhood",
+    "col": "neighborhood_id",
+    "code_col": "neighborhood_code",
+    "name_col": "neighborhood_name",
+    "price_col": "neighborhood_price_sqm",
+    "dist_code_col": "district_code",
+    "dist_name_col": "district_name",
+    "drop_source": true
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "rent_price"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Donnée aberrantes et non utiles pour les premiers tests "
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "is_rent_price_known"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Données absentes "
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "is_buy_price_known"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Données inutiles "
+  },
+  {
+    "op": "impute",
+    "col": "is_new_development",
+    "val": "False",
+    "strategy": "const",
+    "flag_col": "is_new_development_imputed_flag"
+  },
+  {
+    "op": "drop_rows_where_na",
+    "col": "district_name",
+    "rows_removed": 80
+  },
+  {
+    "op": "impute_mode_multi_group",
+    "col": "built_year",
+    "groupby_cols": [
+      "district_name",
+      "neighborhood_name",
+      "neighborhood_code"
+    ],
+    "flag_col": "built_year_imputed_flag"
+  },
+  {
+    "op": "impute",
+    "col": "has_central_heating",
+    "val": "False",
+    "strategy": "const",
+    "flag_col": "has_central_heating_imputed_flag"
+  },
+  {
+    "op": "impute",
+    "col": "has_individual_heating",
+    "val": "False",
+    "strategy": "const",
+    "flag_col": "has_individual_heating_imputed_flag"
+  },
+  {
+    "op": "merge_bool_to_category",
+    "col_central": "has_central_heating",
+    "col_individual": "has_individual_heating",
+    "col_target": "heating_type",
+    "drop_sources": true
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "has_central_heating_imputed_flag",
+      "has_individual_heating_imputed_flag"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Colonnes n'étants plus utiles "
+  },
+  {
+    "op": "impute",
+    "col": "has_ac",
+    "val": "False",
+    "strategy": "const",
+    "flag_col": "has_ac_imputed_flag"
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "has_ac_imputed_flag"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Colonne n'étants plus utile"
+  },
+  {
+    "op": "impute",
+    "col": "has_fitted_wardrobes",
+    "val": "False",
+    "strategy": "const",
+    "flag_col": "has_fitted_wardrobes_imputed_flag"
+  },
+  {
+    "op": "drop",
+    "cols": [
+      "has_fitted_wardrobes_imputed_flag"
+    ],
+    "reason": "manual_selection",
+    "reason_text": "Colonne n'étant plus utile"
+  },
+  {
+    "op": "impute",
+    "col": "has_lift",
+    "val": "Unknown",
+    "strategy": "const",
+    "flag_col": "has_lift_imputed_flag"
+  },
+  {
+    "op": "impute",
+    "col": "is_exterior",
+    "val": "Unknown",
+    "strategy": "const",
+    "flag_col": "is_exterior_imputed_flag"
+  }
+]

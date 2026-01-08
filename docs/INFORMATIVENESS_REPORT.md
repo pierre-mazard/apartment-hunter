@@ -23,7 +23,7 @@
   - longitude
   - portal
 
--- Pourcentage de valeurs manquantes sur les principaux prédicteurs (échantillon) :
+- Missing% on top predictors (sample):
   - Unnamed: 0: 0 (0.00%)
   - n_rooms: 0 (0.00%)
   - rent_price: 0 (0.00%)
@@ -47,7 +47,7 @@
   - id: 0.020
   - n_floors: 0.014
 
-- Top — information mutuelle :
+- Top mutual info:
   - buy_price: 5.6769
   - buy_price_by_area: 1.2156
   - sq_mt_built: 0.9456
