@@ -1,0 +1,26 @@
+{
+  "data": "/home/pmazard/projects/apartment_hunter/data/cleaned/houses_Madrid.cleaned.20260108_172332.csv",
+  "target": "buy_price",
+  "task": "regression",
+  "model_name": "gradient_boosting",
+  "test_metrics": {
+    "rmse": 51327.50873270517,
+    "rmse_std": NaN,
+    "mae": 29018.7539804888,
+    "mae_std": NaN,
+    "r2": 0.9960469989784347,
+    "r2_std": NaN
+  },
+  "cv_metrics": {
+    "rmse": 44360.63070549512,
+    "rmse_std": 8545.271006964804,
+    "mae": 15516.316845540114,
+    "mae_std": 510.75500954298207,
+    "r2": 0.9966748982829834,
+    "r2_std": 0.0010904488425397684,
+    "search_best_score": 0.9966748982829834,
+    "search_n_iter": 8
+  },
+  "timestamp": "2026-01-08T18:43:55",
+  "fit_time_sec": 84.441906
+}
